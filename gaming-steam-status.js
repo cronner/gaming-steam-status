@@ -81,32 +81,45 @@ class GamingSteamCard extends LitElement {
 
   _sortByStatus(entities) {
     const sortBy = this.config.sort_by || "status";
-    const groups = { online: [], idle: [], dnd: [], offline: [], unavailable: [] };
+    const statusGroups = { online: [], idle: [], dnd: [], offline: [], unavailable: [] };
     for (const e of entities) {
       const state = e.entity.state;
-      const group = groups[state] || groups.offline;
+      const group = statusGroups[state] || statusGroups.offline;
       group.push(e);
     }
-    for (const key of Object.keys(groups)) {
-      groups[key].sort((a, b) => {
-        if (sortBy === "name") {
-          const na = a.entity.attributes.display_name || "";
-          const nb = b.entity.attributes.display_name || "";
-          return na.localeCompare(nb);
-        }
-        if (sortBy === "game") {
-          const ag = a.game && a.game !== "unknown" && a.game !== "None" ? a.game : "";
-          const bg = b.game && b.game !== "unknown" && b.game !== "None" ? b.game : "";
-          if (ag && !bg) return -1;
-          if (!ag && bg) return 1;
-          return ag.localeCompare(bg);
-        }
+    const sortFn = (a, b) => {
+      if (sortBy === "name") {
         const na = a.entity.attributes.display_name || "";
         const nb = b.entity.attributes.display_name || "";
         return na.localeCompare(nb);
-      });
+      }
+      if (sortBy === "game") {
+        const ag = a.game && a.game !== "unknown" && a.game !== "None" ? a.game : "";
+        const bg = b.game && b.game !== "unknown" && b.game !== "None" ? b.game : "";
+        if (ag && !bg) return -1;
+        if (!ag && bg) return 1;
+        return ag.localeCompare(bg);
+      }
+      const na = a.entity.attributes.display_name || "";
+      const nb = b.entity.attributes.display_name || "";
+      return na.localeCompare(nb);
+    };
+    for (const key of Object.keys(statusGroups)) {
+      statusGroups[key].sort(sortFn);
     }
-    return groups;
+    const hasGame = e => e.game && e.game !== "unknown" && e.game !== "None";
+    const playing = [
+      ...statusGroups.online.filter(hasGame),
+      ...statusGroups.idle.filter(hasGame),
+      ...statusGroups.dnd.filter(hasGame),
+    ].sort(sortFn);
+    return {
+      playing,
+      online_no_game: statusGroups.online.filter(e => !hasGame(e)),
+      idle_no_game: statusGroups.idle.filter(e => !hasGame(e)),
+      dnd_no_game: statusGroups.dnd.filter(e => !hasGame(e)),
+      offline: [...statusGroups.offline, ...statusGroups.unavailable],
+    };
   }
 
   _stateLabel(state) {
@@ -181,7 +194,7 @@ class GamingSteamCard extends LitElement {
     const compact = this.config.compact_mode;
 
     const groups = this._sortByStatus(this._entities);
-    let allEntities = [...groups.online, ...groups.idle, ...groups.dnd, ...groups.unavailable, ...groups.offline];
+    let allEntities = [...groups.playing, ...groups.online_no_game, ...groups.idle_no_game, ...groups.dnd_no_game, ...groups.offline];
 
     if (hideOffline) {
       allEntities = allEntities.filter(e => e.entity.state !== "offline");
