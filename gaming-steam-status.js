@@ -94,13 +94,11 @@ class GamingSteamCard extends LitElement {
         return na.localeCompare(nb);
       }
       if (sortBy === "game") {
-        const na = a.entity.attributes.display_name || "";
-        const nb = b.entity.attributes.display_name || "";
         const ag = a.game && a.game !== "unknown" && a.game !== "None" ? a.game : "";
         const bg = b.game && b.game !== "unknown" && b.game !== "None" ? b.game : "";
         if (ag && !bg) return -1;
         if (!ag && bg) return 1;
-        return ag.localeCompare(bg) || na.localeCompare(nb);
+        return ag.localeCompare(bg);
       }
       const na = a.entity.attributes.display_name || "";
       const nb = b.entity.attributes.display_name || "";
